@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 SERIES_TARGET_SEPARATOR = "=>"
 SERIES_ID_SEPARATOR = "/"
 
+DEFAULT_EMAIL_CONTACT_NAME = "Meta Kernel CI team"
+DEFAULT_EMAIL_CONTACT_EMAIL = "kernel-ci@meta.com"
+
 
 class UnsupportedConfigVersion(ValueError):
     def __init__(self, version: int) -> None:
@@ -150,6 +153,8 @@ class EmailConfig:
     ignore_allowlist: bool
     pr_comments_forwarding: Optional[PRCommentsForwardingConfig]
     email_ignore_workflows: List[re.Pattern]
+    contact_name: str = DEFAULT_EMAIL_CONTACT_NAME
+    contact_email: str = DEFAULT_EMAIL_CONTACT_EMAIL
 
     @classmethod
     def from_json(cls, json: Dict) -> "EmailConfig":
@@ -173,6 +178,8 @@ class EmailConfig:
                 re.compile(pattern)
                 for pattern in json.get("email_ignore_workflows", [])
             ],
+            contact_name=json.get("contact_name", DEFAULT_EMAIL_CONTACT_NAME),
+            contact_email=json.get("contact_email", DEFAULT_EMAIL_CONTACT_EMAIL),
         )
 
 

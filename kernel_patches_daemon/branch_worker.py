@@ -124,8 +124,8 @@ Patchwork:  {pw_series_url}
 {body}
 
 Please note: this email is coming from an unmonitored mailbox. If you have
-questions or feedback, please reach out to the Meta Kernel CI team at
-kernel-ci@meta.com.
+questions or feedback, please reach out to the {contact_name} at
+{contact_email}.
 """
 
 EMAIL_TEMPLATE_MERGE_CONFLICT_BODY: Final[str] = """\
@@ -233,7 +233,7 @@ def build_email_body_context(
     )
 
 
-def furnish_ci_email_body(ctx: EmailBodyContext) -> str:
+def furnish_ci_email_body(config: EmailConfig, ctx: EmailBodyContext) -> str:
     """Prepare the body of a BPF CI email according to the provided context"""
     if ctx.status == Status.SUCCESS:
         body = EMAIL_TEMPLATE_SUCCESS_BODY.format(github_actions_url=ctx.github_url)
@@ -251,6 +251,8 @@ def furnish_ci_email_body(ctx: EmailBodyContext) -> str:
         submission_name=ctx.submission_name,
         pw_series_url=ctx.patchwork_url,
         body=body,
+        contact_name=config.contact_name,
+        contact_email=config.contact_email,
     )
 
 
@@ -1471,7 +1473,7 @@ class BranchWorker(GithubConnector):
             inline_logs = self.log_extractor.generate_inline_email_text(failed_logs)
             subject = await get_ci_email_subject(series)
             ctx = build_email_body_context(self.repo, pr, status, series, inline_logs)
-            body = furnish_ci_email_body(ctx)
+            body = furnish_ci_email_body(email_cfg, ctx)
             await send_ci_results_email(email_cfg, series, subject, body)
             bump_email_status_counters(status)
 
