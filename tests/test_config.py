@@ -15,6 +15,8 @@ from unittest.mock import mock_open, patch
 
 from kernel_patches_daemon.config import (
     BranchConfig,
+    DEFAULT_EMAIL_CONTACT_EMAIL,
+    DEFAULT_EMAIL_CONTACT_NAME,
     EmailConfig,
     GithubAppAuthConfig,
     InvalidConfig,
@@ -225,6 +227,29 @@ class TestConfig(unittest.TestCase):
 
 class TestEmailConfig(unittest.TestCase):
     """Tests for EmailConfig parsing."""
+
+    def test_contact_defaults(self):
+        """Contact details retain the Meta defaults when not configured."""
+        cfg = EmailConfig.from_json(
+            {"host": "smtp.example.com", "user": "u", "from": "f@x.com", "pass": "p"}
+        )
+        self.assertEqual(cfg.contact_name, DEFAULT_EMAIL_CONTACT_NAME)
+        self.assertEqual(cfg.contact_email, DEFAULT_EMAIL_CONTACT_EMAIL)
+
+    def test_contact_overrides(self):
+        """Configured contact details override the Meta defaults."""
+        cfg = EmailConfig.from_json(
+            {
+                "host": "smtp.example.com",
+                "user": "u",
+                "from": "f@x.com",
+                "pass": "p",
+                "contact_name": "Example Kernel CI team",
+                "contact_email": "kernel-ci@example.com",
+            }
+        )
+        self.assertEqual(cfg.contact_name, "Example Kernel CI team")
+        self.assertEqual(cfg.contact_email, "kernel-ci@example.com")
 
     def test_email_ignore_workflows_default(self):
         """email_ignore_workflows defaults to empty list when not in config."""
