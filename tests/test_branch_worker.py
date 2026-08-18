@@ -1271,6 +1271,16 @@ class TestEmailNotificationBody(unittest.TestCase):
     # Always show full diff on string match failures
     maxDiff = None
 
+    def setUp(self):
+        self.email_config = EmailConfig.from_json(
+            {
+                "host": "smtp.example.com",
+                "user": "user",
+                "from": "from@example.com",
+                "pass": "pass",
+            }
+        )
+
     def test_email_body_success(self):
         expected = read_fixture("test_email_body_success.golden")
 
@@ -1281,7 +1291,7 @@ class TestEmailNotificationBody(unittest.TestCase):
             github_url="https://github.com/success",
             inline_logs="",
         )
-        body = furnish_ci_email_body(ctx)
+        body = furnish_ci_email_body(self.email_config, ctx)
 
         self.assertEqual(expected, body)
 
@@ -1296,7 +1306,7 @@ class TestEmailNotificationBody(unittest.TestCase):
             github_url="https://github.com/failure",
             inline_logs=inline_logs,
         )
-        body = furnish_ci_email_body(ctx)
+        body = furnish_ci_email_body(self.email_config, ctx)
 
         self.assertEqual(expected, body)
 
@@ -1310,9 +1320,29 @@ class TestEmailNotificationBody(unittest.TestCase):
             github_url="https://github.com/conflict",
             inline_logs="",
         )
-        body = furnish_ci_email_body(ctx)
+        body = furnish_ci_email_body(self.email_config, ctx)
 
         self.assertEqual(expected, body)
+
+    def test_email_body_custom_contact(self):
+        self.email_config.contact_name = "Example Kernel CI team"
+        self.email_config.contact_email = "kernel-ci@example.com"
+        ctx = EmailBodyContext(
+            status=Status.SUCCESS,
+            submission_name="[bpf] Successful patchset",
+            patchwork_url="https://patchwork.com/success",
+            github_url="https://github.com/success",
+            inline_logs="",
+        )
+
+        body = furnish_ci_email_body(self.email_config, ctx)
+
+        self.assertIn(
+            "please reach out to the Example Kernel CI team at\n"
+            "kernel-ci@example.com.",
+            body,
+        )
+        self.assertNotIn("Meta Kernel CI team", body)
 
 
 class TestEmailNotification(unittest.TestCase):
