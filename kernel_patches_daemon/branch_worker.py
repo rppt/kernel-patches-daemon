@@ -150,13 +150,19 @@ No further action is necessary on your part.
 EMAIL_TEMPLATE_FAILURE_BODY: Final[str] = """\
 Matrix:     {github_actions_url}
 
+To check out the tested tree, run:
+git fetch {clone_url} {head_sha}
+git checkout FETCH_HEAD
+
 {inline_logs}\
 """
 # fmt: on
 
 # Context used to format email notification body
 EmailBodyContext = namedtuple(
-    "EmailBodyContext", "status submission_name patchwork_url github_url inline_logs"
+    "EmailBodyContext",
+    "status submission_name patchwork_url github_url inline_logs clone_url head_sha",
+    defaults=("", ""),
 )
 
 
@@ -236,6 +242,8 @@ def build_email_body_context(
         patchwork_url=series.web_url + "&state=*",
         github_url=get_github_actions_url(repo, pr, status),
         inline_logs=inline_logs,
+        clone_url=repo.clone_url,
+        head_sha=pr.head.sha,
     )
 
 
@@ -247,6 +255,8 @@ def furnish_ci_email_body(config: EmailConfig, ctx: EmailBodyContext) -> str:
         body = EMAIL_TEMPLATE_FAILURE_BODY.format(
             inline_logs=ctx.inline_logs,
             github_actions_url=ctx.github_url,
+            clone_url=ctx.clone_url,
+            head_sha=ctx.head_sha,
         )
     else:
         assert ctx.status == Status.CONFLICT
