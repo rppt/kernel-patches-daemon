@@ -8,6 +8,7 @@
 
 import asyncio
 import logging
+import re
 import time
 from typing import Dict, Final, List, Optional, Sequence
 
@@ -97,6 +98,7 @@ class GithubSync(Stats):
             http_retries=http_retries,
         )
         self.tag_to_branch_mapping = kpd_config.tag_to_branch_mapping
+        self.branch_subject_patterns = kpd_config.branch_subject_patterns
         self.workers: Dict[str, BranchWorker] = {
             branch: BranchWorker(
                 patchwork=self.pw,
@@ -142,6 +144,24 @@ class GithubSync(Stats):
                 return mapped_branches
 
         mapped_branches = self.tag_to_branch_mapping.get("__DEFAULT__", [])
+        if self.branch_subject_patterns and mapped_branches:
+            subjects = [series.name, *await series.patch_subjects()]
+            if series.cover_letter:
+                subjects.append(series.cover_letter["name"])
+            # Config validation ensures every pattern key is in __DEFAULT__.
+            matched_branches = [
+                branch
+                for branch, patterns in self.branch_subject_patterns.items()
+                if any(
+                    re.search(pattern, subject, re.IGNORECASE)
+                    for pattern in patterns
+                    for subject in subjects
+                )
+            ]
+            logging.info(f"Subject patterns matched branches {matched_branches}")
+            mapped_branches = matched_branches + [
+                branch for branch in mapped_branches if branch not in matched_branches
+            ]
         logging.info(f"Mapped to default branch order: {mapped_branches}")
         return mapped_branches
 
